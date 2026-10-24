@@ -1,0 +1,55 @@
+name: Build SafeSphere APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get files
+        uses: actions/checkout@v4
+
+      - name: Unpack project
+        run: |
+          if [ -f SafeSphere-source.zip ]; then
+            unzip -o -q SafeSphere-source.zip -d src
+            echo "SRC=src" >> "$GITHUB_ENV"
+          else
+            echo "SRC=." >> "$GITHUB_ENV"
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
+        run: |
+          cd "$SRC"
+          gradle assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/SafeSphere.apk"
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SafeSphere-APK
+          path: SafeSphere.apk
+
+      - name: Publish download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: SafeSphere build ${{ github.run_number }}
+          body: Download SafeSphere.apk below and open it on your Android phone to install.
+          files: SafeSphere.apk
