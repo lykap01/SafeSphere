@@ -49,6 +49,8 @@ jobs:
       - name: Build APK
         env:
           SAFESPHERE_KEY_PASSWORD: ${{ secrets.SAFESPHERE_KEY_PASSWORD }}
+          SAFESPHERE_AI_URL: ${{ secrets.SAFESPHERE_AI_URL }}
+          SAFESPHERE_AI_TOKEN: ${{ secrets.SAFESPHERE_AI_TOKEN }}
         run: |
           cd "$SRC"
           gradle assembleRelease --no-daemon --stacktrace
