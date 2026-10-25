@@ -23,6 +23,18 @@ jobs:
             echo "SRC=." >> "$GITHUB_ENV"
           fi
 
+      - name: Load private signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SAFESPHERE_KEYSTORE }}
+          KEY_PASSWORD: ${{ secrets.SAFESPHERE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Missing secrets. Add SAFESPHERE_KEYSTORE and SAFESPHERE_KEY_PASSWORD in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/safesphere.keystore"
+          echo "SAFESPHERE_KEYSTORE_FILE=$RUNNER_TEMP/safesphere.keystore" >> "$GITHUB_ENV"
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -35,10 +47,16 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build APK
+        env:
+          SAFESPHERE_KEY_PASSWORD: ${{ secrets.SAFESPHERE_KEY_PASSWORD }}
         run: |
           cd "$SRC"
           gradle assembleRelease --no-daemon --stacktrace
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/SafeSphere.apk"
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/safesphere.keystore"
 
       - name: Save APK
         uses: actions/upload-artifact@v4
